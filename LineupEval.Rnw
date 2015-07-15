@@ -1,0 +1,186 @@
+\documentclass{article}
+
+\usepackage{geometry}
+\geometry{verbose,tmargin=2cm,bmargin=2.2cm,lmargin=2.5cm,rmargin=2.5cm}
+
+\usepackage{url}
+\usepackage{breakurl}
+\usepackage[parfill]{parskip}
+\usepackage{amsmath}
+
+<<setup, include=FALSE, cache=FALSE>>=
+opts_chunk$set(fig.path='figures/', fig.align='center', fig.show='hold', cache=TRUE)
+@
+\begin{document}
+\section*{Win Forecasting Through Predictive Modeling}
+by Travis Byrum
+\paragraph
+\\
+The most important purpose of NBA analytics is player evaluation since player performance is the deciding factor behind team wins.  Determining player production can be hard to parse due to basketball's team-oriented nature and as a result there is an endless debate on the subject.  A common approach is to use plus/minus metrics as means of evaluating player production.  The idea behind plus/minus is to use the net difference in score of a player on the floor as a an indicator of that player's production.  Obviously using the pure point differential would be a poor metric in determining a player's impact on team performance since it is heavily influenced by the other players on the court.  This problem led to the creation of other metrics such such as $\textit{APM}$ (Adjusted Plus Minus) which attempts to reduce bias by taking into account teammate and opponent level of talent.  One of the most recent versions of the plus/minus metric is $\textit{RAPM}$ (Regularized Adjusted Plus Minus) which was developed by analyst Jeremias Engelmann as a means of reducing the standard errors of win predictions associated with $\textit{APM}$.  This is accomplished through the use of ridge regression which penalizes unreasonable parameter estimates.  The flexibility of $\textit{RAPM}$ is what makes it so compelling.  The rating can be used to not only evaluate an individual player but also can be combined to forecast lineups and team wins.
+\paragraph
+\\
+The purpose of this article is to attempt to outperform  $\textit{RAPM}$ through the use of predictive modeling.   Although plus/minus approaches are an extremely useful heuristic, it is possible to achieve greater accuracy in forecasting team wins.  To accomplish this, I decided to take a lineup-based approach where the stats from each individual player in the lineup function as the covariates and the lineup-associated wins would be the dependent variable.  In order to take advantage of the wide variety of data types associated with NBA statistics, I used regression decision trees due to their flexibility in modeling interactions.  More specifically, I used an ensemble learning technique known as gradient boosting (also known as $\textit{GBM}$) .  The idea behind gradient boosting is to combine several smaller decision tree models each with individually weak predictive performance, into a larger model with greater performance.  It can be understood as an an additive model \footnote{http://en.wikipedia.org/wiki/Gradient$\textunderscore$boosting} as seen in the following equation:
+\begin{equation}
+F(x) = \sum_{i=1}^M \gamma_i h_i(x) + \mbox{const}.
+\end{equation}
+In this context, each term $h_i(x)$ represents an individual regression decision tree and $\gamma_i$ is a weight calculated through resampling .  Although the specifics as to how the weights and terms are derived is a bit complicated, the advantage of this approach is greater predictive accuracy and flexibility than would be achievable with standard OLS regression.
+\paragraph
+\\
+To apply this approach, I decided to fit the model on lineup data from the 2012-2013 season\footnote{Data gathered from Basketball-Reference}.  An individual row of the data includes information on specific lineup combinations, including games/minutes played and net points.  This can be seen in the following output. 
+\\
+<< echo = FALSE, cache = TRUE, eval=TRUE>>=
+set.seed(17)
+library(gbm)
+finaldata<-read.csv("~/finaldata.csv")
+lineup.2014<-read.csv("~/short2014lineup")
+#reading in data
+winexpectation<-read.table("~/winexpectation.csv", header=T, quote="\"")#reading in data
+#finalplayerdata <- read.csv("~/finalplayerdata.csv") #not necessary for analysis
+#calculating the win expectation as predicted by RAPM
+data<-finaldata[,-seq(1,length(finaldata),by=51)]  #need to take out names for final analysis
+data[is.na(data)]<-0 #replaces missing measurements with zero since we assume NA is due to low minutes
+data<-cbind(winexpectation,data)
+names(data)[1] <- "wins"
+names(lineup.2014)[20]<"Net Pts"
+#######################
+off<-finaldata[,seq(29,length(finaldata),by=51)]#offensive RAPM
+def<-finaldata[,seq(30,length(finaldata),by=51)]#defensive RAMP 
+#######################
+combined<-finaldata[,seq(31,length(finaldata),by=51)]
+# using wins estimated by http://statitudes.com/blog/2013/09/09/pythagoras-of-the-hardwood/
+#rapm estimates
+est<-rep(NA,nrow(off))
+for(i in 1:nrow(off)){
+  est[i]<-1/(1+exp(-0.13959*sum(combined[i,])))
+}
+lineup.2014[1,]
+@
+\paragraph
+\\
+The main point of interest is the net points associated with each lineup since this is what largely determines team wins.  I decided to project the net points into win percentages using the formula\footnote{http://statitudes.com/blog/2013/09/09/pythagoras-of-the-hardwood/}:
+\begin{equation}
+E(Win\%) =(1 / (1 + e^{0.13959 * (Avg. Pt. Diff)}))
+\end{equation}
+\paragraph
+\\
+This projection now functions as the response in the model and gives somewhat better performance than the Pythagorean win expectation.  It can be thought of as the winning percentage of a lineup if they were playing $100\%$ of the team's minutes.  The metric is also useful since it lets us project win percentages from $\textit{RAPM}$ which can be combined across lineups into a point differential.  Although we are modeling a wins projection for interpretability, this is the same as modeling the point differential per lineup and then applying a transformation.  Intuitively since we think of lineup production as a function of the individual players' production, I decided to use the individual player stats as predictors.  With this in mind the model formula becomes
+\begin{equation}
+E(Win\%)_{i}\sim X_{player1i}+X_{player2i}+X_{player3i}+X_{player4i}+X_{player5i}....
+\end{equation}
+where $i$ corresponds to the $i^{th}$ lineup and $X_{player1i}$ corresponds to a statistic for a player in lineup $i$.  I've included a number of different statistics in the model for each player including evaluation ratings such as $\textit{PER}$ and $\textit{Offensive/Defensive Rating}$.  The final result is a $255$ length vector for each lineup which includes $51$ unique performance metrics for each player.  The idea here is that we can combine information across players' average performances to predict their specific performance in a given lineup combination.  Although many of the variables are very correlated with each other, the beauty of this modeling approach is that boosted decision trees are already robust against collinearity.
+\paragraph
+\\
+Using the previous model specification, I ran the $\textit{GBM}$ on 504 different lineup combinations from the 2012-2013 season.  This number was chosen by necessity since I did not have the necessary individual statistics for every player in every lineup.  Since the model does not make the familiar probabilistic assumptions of linear regression, there are different diagnostics to determine overfitting.  Since $\textit{GBM}$ is built from a large number of smaller decision trees, one of the most important parameters is determining the number of trees (known as the iterations) to fit the data.  The following plot gives us the squared error loss associated with increasing the number of trees:
+
+<< fig.width=4.6, fig.height=4, echo = FALSE, cache = TRUE,results='hide',eval=TRUE>>=
+attach(data)
+response_column <- which(colnames(data) == "wins")
+gbm_formula<-as.formula(paste0("wins ~ ", paste(colnames(data[, -c(response_column)]), 
+   collapse = " + ")))
+
+train_rows <- sample(nrow(data), round(nrow(data) * 0.5))
+traindf <- data[train_rows, ]
+testdf <- data[-train_rows, ]
+
+
+#fiting the boosting algorithm
+gbm1<-gbm(gbm_formula,           # formula
+    data=data,                 # dataset
+    distribution="gaussian",     # see the help for other choices
+    n.trees=1500,                # number of trees
+    shrinkage=0.001,              # shrinkage or learning rate,
+    # 0.001 to 0.1 usually work
+    interaction.depth=5,         # 1: additive model, 2: two-way interactions, etc.
+    bag.fraction = 0.5,          # subsampling fraction, 0.5 is probably best
+    train.fraction = 0.9,        # fraction of data for training,
+    # first train.fraction*N used for training
+    n.minobsinnode = 10,         # minimum total weight needed in each node
+    cv.folds = 2,                # do n-fold cross-validation
+    keep.data=TRUE,              # keep a copy of the dataset with the object
+    verbose=TRUE,                # don't print out progress
+    n.cores=1)  
+gbm_perf<-gbm.perf(gbm1, method = "cv")
+@
+
+\paragraph
+\\
+The squared error loss in this context is calculated from the actual response (lineup win projections calculated from point differentials) against the predicted response.  The black line indicates the in sample squared error while the red and green lines indicate squared error occurring from $n$-fold cross-validation.  The dotted blue line represents a guess at the optimal number of iterations which achieves a balance between overfitting and predictive power.  Another parameter useful for optimization is known as the learning rate which generally specifies the rate of the model's convergence.  A lower learning rate is regarded as a protection against overfitting at the expense of computation.   My model used 1500 trees since the penalty was not too steep and the learning rate was rather low at 0.001.  After randomly splitting the 2012-2013 lineup data into a training and testing set, I found that $\textit{RAPM}$ derived win projections had a mean squared error of 0.237124 versus the model's mean squared error 0.1881644.
+\begin{equation}
+\mathbf{MSE}_{RAPM}=0.2371\left |  \right |\mathbf{MSE}_{Model}=0.1882
+\end{equation}
+\paragraph
+\\
+This is to be expected, since the model was fit on data from the same year.  The real test of the model's predictive power, is using it to predict lineup winning percentages in future seasons.  To do this I predicted winning percentages on 364 different lineup combinations from 2013-2014\footnote{Data gathered from Basketball-Reference}.  The reason for $n=364$ is because I needed to exclude rookies since they would not be expected to have $\textit{RAPM}$ values.  As a result I found that $\textit{RAPM}$ derived win projections had a mean squared error of 0.2053992 versus the model's mean squared error 0.2020012.
+\begin{equation}
+\mathbf{MSE}_{RAPM}=0.2054\left |  \right |\mathbf{MSE}_{Model}=0.202
+\end{equation}
+\paragraph
+\\
+The results of the model are also as extensible as the results from  $\textit{RAPM}$.  Just as we can use $\textit{RAPM}$ to find the the projected wins from the inclusion of a player into a lineup, we can do the same with modeling.  First we project the wins from a lineup minus the player using the model to predict winning percentages. This is then multiplied by the $\%$ of minutes and $\%$ of games the lineup is expected to play.  These steps are then repeated with the player included in the lineup and we end up with a different win projection.  The difference between the two is the number of wins a player brings to that lineup.  The advantage and disadvantage of $\textit{RAPM}$ is that it presents a universal ranking while the modeling approach is dependent on the context of a player.
+
+
+\paragraph
+\\
+Although the differences in error are rather small they are still interesting since there is much more possible optimization.  Greater feature selection and parameter selection could improve the predictive accuracy.  The model is only fit on data from one preceding season and while more historical data could improve the model I believe that there would be diminishing returns in this regard.  This is also without mentioning the different modeling approaches that would allow player evaluators to choose the model that give them the best results.  Although plus/minus metrics are great for reference, I believe that it is better to project performance through modeling than trying to create a somewhat arbitrary ranking of players.
+
+\section{Forecasting Example}
+\paragraph
+\\
+To show how this method can be used to predict the outcomes of trades, I will utilize a real example from the 2013-2014 season.  In February of 2014, the Bucks traded Gary Neal and Luke Ridnour to the Charlotte Bobcats for Jeff Adrien and Ramon Sessions.  It is possible to use the regression model to project the number of wins that results from exchanging Ridnour for a player like Sessions.  There are several questions that need to be asked in order to gauge the accuracy of the prediction.  First we must decide which new lineups are going to replace those used in the departing player's minutes of playing time.  Looking at Luke Ridnour specifically, we see that his top three most used lineups were the following:
+\\
+\\
+$\textit{G. Antetokounmpo | E. Ilyasova | B. Knight | L. Ridnour | L. Sanders}$  
+\\
+$\textit{C. Butler | E. Ilyasova | O. Mayo | Z. Pachulia | L. Ridnour}$
+\\
+$\textit{G. Antetokounmpo | E. Ilyasova | M. Raduljica | L. Ridnour | N. Wolters}$
+\\
+\\
+In total these lineups accounted for 198.6 minutes of playing time over the season.  Since Ridnour was traded around 54 games into the season we can estimate from these lineups' point differentials how many wins they contributed over this interval.  From the win expectation formula mentioned earlier,
+\begin{equation}
+E(Win\%) =(1 / (1 + e^{0.13959 * (Avg. Pt. Diff)}))
+\end{equation}
+it is possible to find the winning percentages of these lineups which follow in the order listed:
+<<cache=FALSE,eval=TRUE,echo=FALSE>>=
+avg.diff<-c(1/11,-0.1428571,1)
+(1/(1+exp(-0.13959*avg.diff)))
+@
+This is a theoretical winning percentage indicating that we need use playing time to extrapolate to games won.  If a lineup accounts for $\textit{X}\%$ of a team's total playing time then we think of that lineup as playing $\textit{X}\%*\textit{Total Games Played}$.  This number times the winning percentage gives the total number of wins contributed by the lineup.  As a result we find the earlier lineups contributed the following wins:  
+<<cache=FALSE,eval=TRUE,echo=FALSE>>=
+avg.diff<-c(1/11,2/-14,1)
+min<-c(0.05131173,0.01658951,0.008719136)
+(1/(1+exp(-0.13959*avg.diff)))*min*54
+@
+
+Now we must project which lineups will replace Ridnour's lost minutes.  Let us pretend that the following lineups with Sessions will account the lost 198.6 minutes of lineups which included Ridnour.
+\\
+\\
+$\textit{G. Antetokounmpo | J. Henson | E. Ilyasova | B. Knight | R. Sessions}$  
+\\
+$\textit{G. Antetokounmpo | J. Henson | B. Knight | K. Middleton | R. Sessions}$
+\\
+$\textit{G. Antetokounmpo | J. Henson | K. Middleton | Z. Pachulia | R. Sessions}$
+\\
+\\
+Even though these lineups actually played in the 2013-2014 season, I will pretend that they are theoretical and will play equal time totaling 198.6 minutes. Implicit within this projection is the idea that all other lineups will have the same playing time before and after the trade.  This is obviously a terrible assumption but is used for simplicity's sake to show how the projection works.  Using the model, we project the following winning percentages:
+<<cache=FALSE,eval=TRUE,echo=FALSE>>=
+diff<-c(0.5238770,0.4875062,0.5033656)
+diff
+
+@
+Next we find the projected wins after assuming that these lineups will play 198.6 minutes in total split equally over the same 54 game period that Ridnour's lineups played. 
+
+<<cache=FALSE,eval=TRUE,echo=FALSE>>=
+diff<-c(0.5238770,0.4875062,0.5033656)
+min<-c(0.02554012,0.02554012,0.02554012)
+diff*min*54
+@
+
+This translates to combined wins of 2.089479 for the Ridnour lineups and 2.089091 for the Sessions lineups.  The model tells us verry little about the value of Ridnour versus Sessions but instead shows how we compare lineup distributions.  The efficacy of the modeling method is tied to knowing the playing time distribution among lineups.  This may not necessarily easily accountable but it allows us to move past arbitrary player rankings that ignore context.  It might seem to be somewhat of a problem but it is still present in other player evaluation methods.  Knowing that a traded player brings an increase of $\textit{RAPM}$ only matters if that player is on the court which is fully determined by their inclusion in lineups.  It is much more appropriate for comparing players individually.  
+
+
+
+
+
+
+\end{document}
