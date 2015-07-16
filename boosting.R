@@ -1,5 +1,7 @@
 set.seed(17)
 library(gbm)
+
+#####################################################################################
 finaldata<-read.csv("~/finaldata.csv")
 #reading in data
 winexpectation<-read.table("~/winexpectation.csv", header=T, quote="\"")#reading in data
@@ -11,7 +13,7 @@ data<-cbind(winexpectation,data)
 names(data)[1] <- "wins"
 #######################
 off<-finaldata[,seq(29,length(finaldata),by=51)]#offensive RAPM
-def<-finaldata[,seq(30,length(finaldata),by=51)]#defensive RAMP 
+def<-finaldata[,seq(30,length(finaldata),by=51)]#defensive RAPM 
 #######################
 combined<-finaldata[,seq(31,length(finaldata),by=51)]
 # using wins estimated by http://statitudes.com/blog/2013/09/09/pythagoras-of-the-hardwood/
