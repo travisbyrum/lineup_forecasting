@@ -23,5 +23,13 @@ repeat{
   }
 }
 
-write.csv(full_table, "lineups.csv")
+write.csv(full_table, "lineups.csv", row.names = F)
+
+
+
+
+
+
+
+
 
