@@ -52,13 +52,32 @@ player_table <- player_table %>% select(-Rk_totals, -Rk_per_36, -Rk_advanced, -X
                                  Tm = Tm_totals, G = G_totals, GS = GS_totals, MP = MP_totals, X2Pper = X2Pper_totals, X3Pper = X3Pper_totals, 
                                  FTper = FTper_totals) 
 
-for(i in colnames(player_table)[!(colnames(player_table) %in% c("Player", "Tm", "Pos"))]){
+for(i in colnames(player_table)[!(colnames(player_table) %in% c("Player", "Tm", "Pos"))]){  # Forcing data to numeric type when appropriate
   player_table[,i] <- as.numeric(player_table[,i])
 }
 
 player_table <- player_table %>% mutate(possessions = .96*(FGA_totals-ORB_totals+TOV_totals+(.44*FTA_totals)))
 
+############################################################################################### RAPM data from espn.com
+
+rapm_reader <- function(page){
+  url_rapm <- paste0("http://espn.go.com/nba/statistics/rpm/_/page/", page, "/sort/RPM")
+  row <- readHTMLTable(url_rapm, stringsAsFactors = F)[[1]] %>% select(-RK, -TEAM, -GP, -MPG) %>% rename(Player = NAME) # we want the second table from the HTML
+  row$Player <- sub(",.*$","", row$Player) 
+  return(row)
+}
+
+df_rapm <- do.call(rbind, lapply(1:12, function(x) rapm_reader(x)))
+for(i in colnames(df_rapm)[-1]){
+  df_rapm[,i] <- as.numeric(df_rapm[,i])
+}
+
+player_table <- left_join(player_table, df_rapm, by = NULL)
+
 write.csv(player_table, "player_stats.csv", row.names = F)
+
+
+
 
 
 
