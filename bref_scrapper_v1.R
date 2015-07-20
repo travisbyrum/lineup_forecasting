@@ -23,7 +23,7 @@ repeat{
   }
 }
 
-write.csv(full_table, "lineups.csv", row.names = F)
+write.csv(full_table, "/Users/travisbyrum/lineup_forecasting/data/lineups.csv", row.names = F)
 
 ###############################################################################################
 # Basketball Reference URL for player stats: http://www.basketball-reference.com/leagues/NBA_2015_per_game.html?lid=header_seasons
@@ -60,7 +60,7 @@ player_table <- player_table %>% mutate(possessions = .96*(FGA_totals-ORB_totals
 
 ############################################################################################### RAPM data from espn.com
 
-rapm_reader <- function(page){
+rapm_reader <- function(page){ # function to read data off espn
   url_rapm <- paste0("http://espn.go.com/nba/statistics/rpm/_/page/", page, "/sort/RPM")
   row <- readHTMLTable(url_rapm, stringsAsFactors = F)[[1]] %>% select(-RK, -TEAM, -GP, -MPG) %>% rename(Player = NAME) # we want the second table from the HTML
   row$Player <- sub(",.*$","", row$Player) 
@@ -68,13 +68,14 @@ rapm_reader <- function(page){
 }
 
 df_rapm <- do.call(rbind, lapply(1:12, function(x) rapm_reader(x)))
-for(i in colnames(df_rapm)[-1]){
+
+for(i in colnames(df_rapm)[-1]){ # forcing type to numeric
   df_rapm[,i] <- as.numeric(df_rapm[,i])
 }
 
 player_table <- left_join(player_table, df_rapm, by = NULL)
 
-write.csv(player_table, "player_stats.csv", row.names = F)
+write.csv(player_table, "/Users/travisbyrum/lineup_forecasting/data/player_stats.csv", row.names = F)
 
 
 
