@@ -49,4 +49,19 @@ final_df <- do.call(rbind, lapply(1:nrow(lineups), function(x) row_builder(lineu
 
 write.csv(final_df, "/Users/travisbyrum/lineup_forecasting/data/final_data.csv", row.names = F)
 
+# removing rows from win_expectation where the lineup has incomplete player data
+df_vec <- rep(FALSE, nrow(lineups))
+for(i in 1:nrow(lineups)){
+  if (is.null(row_builder(lineups[i,])) == TRUE){
+    df_vec[i] <- TRUE
+  }
+}
+
+winexpectation <- read.csv("~/lineup_forecasting/data/win_expectation2015.csv", stringsAsFactors = F)# reading in win_expectation
+winexpectation <- winexpectation[!df_vec,]
+write.csv(winexpectation, file = "/Users/travisbyrum/lineup_forecasting/data/win_expectation2015.csv", row.names = F)
+
+
+
+
 
