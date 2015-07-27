@@ -26,44 +26,49 @@ F(x) = \sum_{i=1}^M \gamma_i h_i(x) + \mbox{const}.
 In this context, each term $h_i(x)$ represents an individual regression decision tree and $\gamma_i$ is a weight calculated through resampling .  Although the specifics as to how the weights and terms are derived is a bit complicated, the advantage of this approach is greater predictive accuracy and flexibility than would be achievable with standard OLS regression.
 \paragraph
 \\
-To apply this approach, I decided to fit the model on lineup data from the 2012-2013 season\footnote{Data gathered from Basketball-Reference}.  An individual row of the data includes information on specific lineup combinations, including games/minutes played and net points.  This can be seen in the following output. 
+To apply this approach, I decided to fit the model on lineup data from the 2014-2015 season\footnote{Data gathered from Basketball-Reference}.  An individual row of the data includes information on specific lineup combinations, including games/minutes played and net points.  This can be seen in the following output. 
 \\
 << echo = FALSE, cache = TRUE, eval=TRUE>>=
+
 set.seed(17)
 library(gbm)
-finaldata<-read.csv("~/finaldata.csv")
-lineup.2014<-read.csv("~/short2014lineup")
+finaldata <- read.csv("~/lineup_forecasting/data/final_data.csv", stringsAsFactors = F) #reading in data
+lineups<- read.csv("~/lineup_forecasting/data/lineups.csv", stringsAsFactors = F)
 #reading in data
-winexpectation<-read.table("~/winexpectation.csv", header=T, quote="\"")#reading in data
-#finalplayerdata <- read.csv("~/finalplayerdata.csv") #not necessary for analysis
+winexpectation <- read.csv("~/lineup_forecasting/data/win_expectation2015.csv", stringsAsFactors = F)
+#reading in win_expectation
 #calculating the win expectation as predicted by RAPM
-data<-finaldata[,-seq(1,length(finaldata),by=51)]  #need to take out names for final analysis
-data[is.na(data)]<-0 #replaces missing measurements with zero since we assume NA is due to low minutes
-data<-cbind(winexpectation,data)
-names(data)[1] <- "wins"
-names(lineup.2014)[20]<"Net Pts"
+df_rapm <- final_data[,!grepl("Player", colnames(final_data))]  #need to take out names for final analysis
+df_rapm[is.na(df_rapm)] <- 0 #replaces missing measurements with zero since we assume NA is due to low minutes
+df_rapm <- df_rapm %>% mutate(wins = winexpectation$x, Pos = as.factor(Pos), Pos.1 = as.factor(Pos.1), 
+                              Pos.2 = as.factor(Pos.2),
+                              Pos.3 = as.factor(Pos.3), Pos.4 = as.factor(Pos.4), Tm = as.factor(Tm), Tm.1 = as.factor(Tm.1),
+                              Tm.2 = as.factor(Tm.2), Tm.3 = as.factor(Tm.3), Tm.4 = as.factor(Tm.4))
 #######################
-off<-finaldata[,seq(29,length(finaldata),by=51)]#offensive RAPM
-def<-finaldata[,seq(30,length(finaldata),by=51)]#defensive RAMP 
+off <- final_data[,grepl("ORPM", colnames(final_data))] #offensive RAPM
+def <- final_data[,grepl("DRPM", colnames(final_data))] #defensive RAPM 
 #######################
-combined<-finaldata[,seq(31,length(finaldata),by=51)]
+combined <- final_data %>% mutate(total = ORPM + DRPM) %>% select(total) #combined RAPM
+
 # using wins estimated by http://statitudes.com/blog/2013/09/09/pythagoras-of-the-hardwood/
 #rapm estimates
 est<-rep(NA,nrow(off))
 for(i in 1:nrow(off)){
   est[i]<-1/(1+exp(-0.13959*sum(combined[i,])))
 }
-lineup.2014[1,]
+
+lineups[1,]
 @
 \paragraph
 \\
 The main point of interest is the net points associated with each lineup since this is what largely determines team wins.  I decided to project the net points into win percentages using the formula\footnote{http://statitudes.com/blog/2013/09/09/pythagoras-of-the-hardwood/}:
 \begin{equation}
-E(Win\%) =(1 / (1 + e^{0.13959 * (Avg. Pt. Diff)}))
+\mathrm{Win} = \frac{\text{points for}^{13.91}}{\text{points for}^{13.91} + \text{points against}^{13.91}}
+%E(Win\%) =(1 / (1 + e^{0.13959 * (Avg. Pt. Diff)}))
 \end{equation}
 \paragraph
 \\
-This projection now functions as the response in the model and gives somewhat better performance than the Pythagorean win expectation.  It can be thought of as the winning percentage of a lineup if they were playing $100\%$ of the team's minutes.  The metric is also useful since it lets us project win percentages from $\textit{RAPM}$ which can be combined across lineups into a point differential.  Although we are modeling a wins projection for interpretability, this is the same as modeling the point differential per lineup and then applying a transformation.  Intuitively since we think of lineup production as a function of the individual players' production, I decided to use the individual player stats as predictors.  With this in mind the model formula becomes
+This projection is known as the Pythagorean win expectation.  It can be thought of as the winning percentage of a lineup if they were playing $100\%$ of the team's minutes.  The metric is also useful since it lets us project win percentages from $\textit{RAPM}$ which can be combined across lineups into a point differential.  Although we are modeling a wins projection for interpretability, this is the same as modeling the point differential per lineup and then applying a transformation.  Intuitively since we think of lineup production as a function of the individual players' production, I decided to use the individual player stats as predictors.  With this in mind the model formula becomes
 \begin{equation}
 E(Win\%)_{i}\sim X_{player1i}+X_{player2i}+X_{player3i}+X_{player4i}+X_{player5i}....
 \end{equation}
@@ -73,40 +78,42 @@ where $i$ corresponds to the $i^{th}$ lineup and $X_{player1i}$ corresponds to a
 Using the previous model specification, I ran the $\textit{GBM}$ on 504 different lineup combinations from the 2012-2013 season.  This number was chosen by necessity since I did not have the necessary individual statistics for every player in every lineup.  Since the model does not make the familiar probabilistic assumptions of linear regression, there are different diagnostics to determine overfitting.  Since $\textit{GBM}$ is built from a large number of smaller decision trees, one of the most important parameters is determining the number of trees (known as the iterations) to fit the data.  The following plot gives us the squared error loss associated with increasing the number of trees:
 
 << fig.width=4.6, fig.height=4, echo = FALSE, cache = TRUE,results='hide',eval=TRUE>>=
-attach(data)
-response_column <- which(colnames(data) == "wins")
-gbm_formula<-as.formula(paste0("wins ~ ", paste(colnames(data[, -c(response_column)]), 
-   collapse = " + ")))
+attach(df_rapm)
+response_column <- which(colnames(df_rapm) == "wins")
+gbm_formula<-as.formula(paste0("wins ~ ", paste(colnames(df_rapm[, -c(response_column)]), 
+                                                collapse = " + ")))
 
-train_rows <- sample(nrow(data), round(nrow(data) * 0.5))
-traindf <- data[train_rows, ]
-testdf <- data[-train_rows, ]
-
+train_rows <- sample(nrow(df_rapm), round(nrow(df_rapm) * 0.5))
+traindf <- df_rapm[train_rows, ]
+testdf <- df_rapm[-train_rows, ]
 
 #fiting the boosting algorithm
 gbm1<-gbm(gbm_formula,           # formula
-    data=data,                 # dataset
-    distribution="gaussian",     # see the help for other choices
-    n.trees=1500,                # number of trees
-    shrinkage=0.001,              # shrinkage or learning rate,
-    # 0.001 to 0.1 usually work
-    interaction.depth=5,         # 1: additive model, 2: two-way interactions, etc.
-    bag.fraction = 0.5,          # subsampling fraction, 0.5 is probably best
-    train.fraction = 0.9,        # fraction of data for training,
-    # first train.fraction*N used for training
-    n.minobsinnode = 10,         # minimum total weight needed in each node
-    cv.folds = 2,                # do n-fold cross-validation
-    keep.data=TRUE,              # keep a copy of the dataset with the object
-    verbose=TRUE,                # don't print out progress
-    n.cores=1)  
-gbm_perf<-gbm.perf(gbm1, method = "cv")
+          data=traindf,                # dataset
+          distribution="gaussian",     # see the help for other choices
+          n.trees=1500,                # number of trees
+          shrinkage=0.01,             # shrinkage or learning rate,
+          # 0.001 to 0.1 usually work
+          interaction.depth=5,         # 1: additive model, 2: two-way interactions, etc.
+          bag.fraction = 0.5,          # subsampling fraction, 0.5 is probably best
+          train.fraction = 0.9,        # fraction of data for training,
+          # first train.fraction*N used for training
+          n.minobsinnode = 10,         # minimum total weight needed in each node
+          cv.folds = 2,                # do n-fold cross-validation
+          keep.data=TRUE,              # keep a copy of the dataset with the object
+          verbose=TRUE,                # don't print out progress
+          n.cores=1)   
+
+gbm_perf <- gbm.perf(gbm1, method = "cv")
+gbm_mse <- mean((pred - winexpectation$x[-train_rows])^2,na.rm = TRUE)
+rapm_mse <- mean((est - winexpectation$x[-train_rows])^2,na.rm = TRUE)
 @
 
 \paragraph
 \\
-The squared error loss in this context is calculated from the actual response (lineup win projections calculated from point differentials) against the predicted response.  The black line indicates the in sample squared error while the red and green lines indicate squared error occurring from $n$-fold cross-validation.  The dotted blue line represents a guess at the optimal number of iterations which achieves a balance between overfitting and predictive power.  Another parameter useful for optimization is known as the learning rate which generally specifies the rate of the model's convergence.  A lower learning rate is regarded as a protection against overfitting at the expense of computation.   My model used 1500 trees since the penalty was not too steep and the learning rate was rather low at 0.001.  After randomly splitting the 2012-2013 lineup data into a training and testing set, I found that $\textit{RAPM}$ derived win projections had a mean squared error of 0.237124 versus the model's mean squared error 0.1881644.
+The squared error loss in this context is calculated from the actual response (lineup win projections calculated from point differentials) against the predicted response.  The black line indicates the in sample squared error while the red and green lines indicate squared error occurring from $n$-fold cross-validation.  The dotted blue line represents a guess at the optimal number of iterations which achieves a balance between overfitting and predictive power.  Another parameter useful for optimization is known as the learning rate which generally specifies the rate of the model's convergence.  A lower learning rate is regarded as a protection against overfitting at the expense of computation.   My model used 1500 trees since the penalty was not too steep and the learning rate was rather low at 0.001.  After randomly splitting the 2012-2013 lineup data into a training and testing set, I found that $\textit{RAPM}$ derived win projections had a mean squared error of $\Sexpr{rapm_mse}$ versus the model's mean squared error $\Sexpr{gbm_mse}$.
 \begin{equation}
-\mathbf{MSE}_{RAPM}=0.2371\left |  \right |\mathbf{MSE}_{Model}=0.1882
+\mathbf{MSE}_{RAPM}=\Sexpr{rapm_mse}\left |  \right |\mathbf{MSE}_{Model}=\Sexpr{gbm_mse}
 \end{equation}
 \paragraph
 \\

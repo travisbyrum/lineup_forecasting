@@ -6,7 +6,6 @@ library(dplyr)
 
 final_data <- read.csv("~/lineup_forecasting/data/final_data.csv", stringsAsFactors = F) #reading in data
 
-#winexpectation<-read.table("~/winexpectation.csv", header=T, quote="\"" )#reading in data
 winexpectation <- read.csv("~/lineup_forecasting/data/win_expectation2015.csv", stringsAsFactors = F)# reading in win_expectation
 
 #calculating the win expectation as predicted by RAPM
