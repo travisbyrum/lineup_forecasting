@@ -57,7 +57,7 @@ gbm1<-gbm(gbm_formula,           # formula
           n.cores=1)   
 
 gbm_perf <- gbm.perf(gbm1, method = "cv")
-pred<-predict(gbm1, newdata=testdf,type="response", n.trees=1000)
+pred <- predict(gbm1, newdata=testdf,type="response", n.trees=1000)
 
 mean((pred - winexpectation$x[-train_rows])^2,na.rm = TRUE)
 
