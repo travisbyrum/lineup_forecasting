@@ -14,5 +14,4 @@ vignettes/*.pdf
 .Rproj.user
 LineupEval.log
 LineupEval.synctex.gz
-LineupEval-concordance.tex
 cache
