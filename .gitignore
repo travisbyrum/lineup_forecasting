@@ -13,5 +13,6 @@ vignettes/*.html
 vignettes/*.pdf
 .Rproj.user
 reports/LineupEval.log
+reports/LineupEval-concordance.tex
 reports/LineupEval.synctex.gz
 cache
