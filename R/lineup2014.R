@@ -1,24 +1,25 @@
 ###### Settings
 library(XML)
 library(stringr)
+library(readr)
 
 ###### URLs
-url<-paste0("http://stats-for-the-nba.appspot.com/ratings/2013.html")
-len<-length(url)
+url <- paste0("http://stats-for-the-nba.appspot.com/ratings/2013.html")
+len <- length(url)
 
 ###### Reading data
 tbl <- readHTMLTable(url[1])[[1]]
 tbl <- tbl[,-6]
 colnames(tbl) <- c("Player","Offense/100","Defense/100","Off+Deff/200","Poss")
 
-lineup.2014 <- read.csv("~/Desktop/Papers/2014lineups.csv")
+lineup.2014 <- read_csv("~/Desktop/Papers/2014lineups.csv")
 lineup.2014 <- lineup.2014[order(-lineup.2014$MP),] #order by minutes played
 #############################################################
 
 player.names <- NULL
 split <- NULL
 dts <- NULL
-k <- matrix(NA,nrow=1,ncol=51)
+k <- matrix(NA, nrow=1, ncol=51)
 colnames(k) <- colnames(player.final)
 
 for (i in 1:nrow(lineup.2014)) { 
@@ -56,7 +57,7 @@ for (i in 1:nrow(lineup.2014)) {
           }
     }
   row<-row[1,]
-  if (i==1) dts<-row
+  if (i==1) dts <- row
   else dts<-rbind(dts,row)
 }
 
