@@ -4,24 +4,24 @@ library(readr)
 
 set.seed(17)
 
-final_data <- read_csv("~/lineup_forecasting/data/final_data.csv") #reading in data
-winexpectation <- read_csv("~/lineup_forecasting/data/win_expectation2015.csv") # reading in win_expectation
+final_data <- read_csv("~/lineuper/data/final_data.csv") #reading in data
+winexpectation <- final_data$win_expectation # reading in win_expectation
 
 #calculating the win expectation as predicted by RAPM
-df_rapm <- final_data[,!grepl("Player", colnames(final_data))]  
-df_rapm[is.na(df_rapm)] <- 0
-df_rapm <- df_rapm %>% mutate(wins = winexpectation$x, 
-                              Pos = as.factor(Pos), 
-                              Pos.1 = as.factor(Pos.1), 
-                              Pos.2 = as.factor(Pos.2),
-                              Pos.3 = as.factor(Pos.3), 
-                              Pos.4 = as.factor(Pos.4), 
-                              Tm = as.factor(Tm), 
-                              Tm.1 = as.factor(Tm.1),
-                              Tm.2 = as.factor(Tm.2), 
-                              Tm.3 = as.factor(Tm.3), 
-                              Tm.4 = as.factor(Tm.4)
-                        )
+df_rapm <- final_data %>%
+  mutate(
+    wins = winexpectation, 
+    Pos = as.factor(Pos), 
+    Pos.1 = as.factor(Pos.1), 
+    Pos.2 = as.factor(Pos.2),
+    Pos.3 = as.factor(Pos.3), 
+    Pos.4 = as.factor(Pos.4), 
+    Tm = as.factor(Tm), 
+    Tm.1 = as.factor(Tm.1),
+    Tm.2 = as.factor(Tm.2), 
+    Tm.3 = as.factor(Tm.3), 
+    Tm.4 = as.factor(Tm.4)
+  )
 
 off <- final_data %>% 
   select(contains("ORPM"))

@@ -2,20 +2,19 @@ library(XML)
 library(dplyr)
 library(readr)
 
-#########################################
-# Basketball Reference URL: http://www.basketball-reference.com/play-index/plus/lineup_finder.cgi?request=1&match=single&player_id=&lineup_type=5-man&output=total&year_id=2015&is_playoffs=N&team_id=&opp_id=&game_num_min=0&game_num_max=99&game_month=&game_location=&game_result=&c1stat=opp_pts&c1comp=ge&c1val=&c2stat=pts&c2comp=ge&c2val=&c3stat=&c3comp=ge&c3val=&c4stat=&c4comp=ge&c4val=&order_by=mp&order_by_asc=&offset=100
 offset <- 0
 full_table <- NULL
 
+base_url <- pasteo(
+  "http://www.basketball-reference.com/play-index/plus/lineup_finder.cgi?",
+  "request=1&match=single&player_id=&lineup_type=5-man&output=total&year_id=2015",
+  "&is_playoffs=N&team_id=&opp_id=&game_num_min=0&game_num_max=99&game_month=&",
+  "game_location=&game_result=&c1stat=opp_pts&c1comp=ge&c1val=&c2stat=pts&c2comp",
+  "=ge&c2val=&c3stat=&c3comp=ge&c3val=&c4stat=&c4comp=ge&c4val=&order_by=mp&order_by_asc=&offset="
+)
+
 repeat{
-  url <- paste0(
-    "http://www.basketball-reference.com/play-index/plus/lineup_finder.cgi?",
-    "request=1&match=single&player_id=&lineup_type=5-man&output=total&year_id=2015",
-    "&is_playoffs=N&team_id=&opp_id=&game_num_min=0&game_num_max=99&game_month=&",
-    "game_location=&game_result=&c1stat=opp_pts&c1comp=ge&c1val=&c2stat=pts&c2comp",
-    "=ge&c2val=&c3stat=&c3comp=ge&c3val=&c4stat=&c4comp=ge&c4val=&order_by=mp&order_by_asc=&offset=", 
-    offset
-  )
+  url <- paste0(base_url, offset)
   row <- readHTMLTable(url, stringsAsFactors = F)[[2]] # we want the second table from the HTML
   
   colnames(row) <- colnames(row) %>% 
@@ -35,9 +34,6 @@ repeat{
 }
 
 write_csv(full_table, "/Users/travisbyrum/lineup_forecasting/data/lineups.csv")
-
-###############################################################################################
-# Basketball Reference URL for player stats: http://www.basketball-reference.com/leagues/NBA_2015_per_game.html?lid=header_seasons
 
 read_function <- function(index){
   url <- paste0(
@@ -66,31 +62,31 @@ comp <- colnames(player_table)[do.call(c, sapply(1:length(rep_categories), funct
 player_table <- player_table[,!(colnames(player_table) %in% comp)]
   
 player_table <- player_table %>% 
-  select(-Rk_totals, 
-         -Rk_per_36,
-         -Rk_advanced, 
-         -X_advanced, 
-         -Xper_advanced
-         ) %>% 
-  rename(Pos = Pos_totals,
-         Player = Player_totals,
-         Age = Age_totals,
-         Tm = Tm_totals,
-         G = G_totals,
-         GS = GS_totals,
-         MP = MP_totals, 
-         X2Pper = X2Pper_totals,
-         X3Pper = X3Pper_totals, 
-         FTper = FTper_totals
-         ) 
+  select(
+    -Rk_totals, 
+    -Rk_per_36,
+    -Rk_advanced, 
+    -X_advanced, 
+    -Xper_advanced
+  ) %>% 
+  rename(
+    Pos = Pos_totals,
+    Player = Player_totals,
+    Age = Age_totals,
+    Tm = Tm_totals,
+    G = G_totals,
+    GS = GS_totals,
+    MP = MP_totals, 
+    X2Pper = X2Pper_totals,
+    X3Pper = X3Pper_totals, 
+    FTper = FTper_totals
+  ) 
 
 for (i in colnames(player_table)[!(colnames(player_table) %in% c("Player", "Tm", "Pos"))]) {  # Forcing data to numeric type when appropriate
   player_table[,i] <- as.numeric(player_table[,i])
 }
 
 player_table <- player_table %>% mutate(possessions = .96*(FGA_totals-ORB_totals+TOV_totals+(.44*FTA_totals)))
-
-############################################################################################### RAPM data from espn.com
 
 rapm_reader <- function(page){ # function to read data off espn
   url_rapm <- paste0("http://espn.go.com/nba/statistics/rpm/_/page/", page, "/sort/RPM")
