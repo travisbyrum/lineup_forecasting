@@ -5,7 +5,7 @@ library(readr)
 offset <- 0
 full_table <- NULL
 
-base_url <- pasteo(
+base_url <- paste0(
   "http://www.basketball-reference.com/play-index/plus/lineup_finder.cgi?",
   "request=1&match=single&player_id=&lineup_type=5-man&output=total&year_id=2015",
   "&is_playoffs=N&team_id=&opp_id=&game_num_min=0&game_num_max=99&game_month=&",
