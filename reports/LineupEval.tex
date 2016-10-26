@@ -1,53 +1,4 @@
-\documentclass{article}\usepackage[]{graphicx}\usepackage[]{color}
-%% maxwidth is the original width if it is less than linewidth
-%% otherwise use linewidth (to make sure the graphics do not exceed the margin)
-\makeatletter
-\def\maxwidth{ %
-  \ifdim\Gin@nat@width>\linewidth
-    \linewidth
-  \else
-    \Gin@nat@width
-  \fi
-}
-\makeatother
-
-\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
-\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
-\newcommand{\hlstr}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
-\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
-\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
-\newcommand{\hlstd}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
-\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
-\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
-\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
-\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
-
-\usepackage{framed}
-\makeatletter
-\newenvironment{kframe}{%
- \def\at@end@of@kframe{}%
- \ifinner\ifhmode%
-  \def\at@end@of@kframe{\end{minipage}}%
-  \begin{minipage}{\columnwidth}%
- \fi\fi%
- \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
- \colorbox{shadecolor}{##1}\hskip-\fboxsep
-     % There is no \\@totalrightmargin, so:
-     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
- \MakeFramed {\advance\hsize-\width
-   \@totalleftmargin\z@ \linewidth\hsize
-   \@setminipage}}%
- {\par\unskip\endMakeFramed%
- \at@end@of@kframe}
-\makeatother
-
-\definecolor{shadecolor}{rgb}{.97, .97, .97}
-\definecolor{messagecolor}{rgb}{0, 0, 0}
-\definecolor{warningcolor}{rgb}{1, 0, 1}
-\definecolor{errorcolor}{rgb}{1, 0, 0}
-\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
-
-\usepackage{alltt}
+\documentclass{article}
 
 \usepackage{geometry}
 \geometry{verbose,tmargin=2cm,bmargin=2.2cm,lmargin=2.5cm,rmargin=2.5cm}
@@ -58,8 +9,6 @@
 \usepackage{amsmath}
 
 
-
-\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
 \begin{document}
 \begin{center}
 \section*{Win Forecasting Through Predictive Modeling}
@@ -81,15 +30,30 @@ To apply this approach, I decided to fit the model on lineup data from the 2014-
 \\
 \begin{knitrout}
 \definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
-\begin{verbatim}
-##   Rk                                                   Lineup  Tm  Season
-## 1  1 M. Barnes | B. Griffin | D. Jordan | C. Paul | J. Redick LAC 2014-15
-##    G     MP Tm_poss Opp_poss Pace   FG  FGA FGper X3P X3PA X3Pper eFGper
-## 1 60 1215.9    2382     2384 94.1 1099 2162 0.508 269  638  0.422  0.571
-##    FT FTA FTper  PTS FG_opp FGA_opp FGper_opp X3P_opp X3PA_opp X3Pper_opp
-## 1 432 625 0.691 2899    943    2131     0.443     208      572      0.364
-##   eFGper_opp FT_opp FTA_opp FTper_opp PTS_opp
-## 1      0.491    350     470     0.745    2444
+
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Parsed with column specification:\\\#\# cols(\\\#\#\ \  .default = col\_double(),\\\#\#\ \  Rk = col\_integer(),\\\#\#\ \  Lineup = col\_character(),\\\#\#\ \  Tm = col\_character(),\\\#\#\ \  Season = col\_character(),\\\#\#\ \  G = col\_integer(),\\\#\#\ \  Tm\_poss = col\_integer(),\\\#\#\ \  Opp\_poss = col\_integer(),\\\#\#\ \  FG = col\_integer(),\\\#\#\ \  FGA = col\_integer(),\\\#\#\ \  X3P = col\_integer(),\\\#\#\ \  X3PA = col\_integer(),\\\#\#\ \  FT = col\_integer(),\\\#\#\ \  FTA = col\_integer(),\\\#\#\ \  PTS = col\_integer(),\\\#\#\ \  FG\_opp = col\_integer(),\\\#\#\ \  FGA\_opp = col\_integer(),\\\#\#\ \  X3P\_opp = col\_integer(),\\\#\#\ \  X3PA\_opp = col\_integer(),\\\#\#\ \  FT\_opp = col\_integer(),\\\#\#\ \  FTA\_opp = col\_integer()\\\#\#\ \  \# ... with 132 more columns\\\#\# )}}
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# See spec(...) for full column specifications.}}
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Parsed with column specification:\\\#\# cols(\\\#\#\ \  .default = col\_integer(),\\\#\#\ \  Lineup = col\_character(),\\\#\#\ \  Tm = col\_character(),\\\#\#\ \  Season = col\_character(),\\\#\#\ \  MP = col\_double(),\\\#\#\ \  Pace = col\_double(),\\\#\#\ \  FGper = col\_double(),\\\#\#\ \  X3Pper = col\_double(),\\\#\#\ \  eFGper = col\_double(),\\\#\#\ \  FTper = col\_double(),\\\#\#\ \  FGper\_opp = col\_double(),\\\#\#\ \  X3Pper\_opp = col\_double(),\\\#\#\ \  eFGper\_opp = col\_double(),\\\#\#\ \  FTper\_opp = col\_double()\\\#\# )}}
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# See spec(...) for full column specifications.}}
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Parsed with column specification:\\\#\# cols(\\\#\#\ \  win\_expectation = col\_double()\\\#\# )}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): wrong result size (4900), expected 1000 or 1}}\begin{verbatim}
+## # A tibble: 1 × 31
+##      Rk                                                   Lineup    Tm
+##   <int>                                                    <chr> <chr>
+## 1     1 M. Barnes | B. Griffin | D. Jordan | C. Paul | J. Redick   LAC
+## # ... with 28 more variables: Season <chr>, G <int>, MP <dbl>,
+## #   Tm_poss <int>, Opp_poss <int>, Pace <dbl>, FG <int>, FGA <int>,
+## #   FGper <dbl>, X3P <int>, X3PA <int>, X3Pper <dbl>, eFGper <dbl>,
+## #   FT <int>, FTA <int>, FTper <dbl>, PTS <int>, FG_opp <int>,
+## #   FGA_opp <int>, FGper_opp <dbl>, X3P_opp <int>, X3PA_opp <int>,
+## #   X3Pper_opp <dbl>, eFGper_opp <dbl>, FT_opp <int>, FTA_opp <int>,
+## #   FTper_opp <dbl>, PTS_opp <int>
 \end{verbatim}
 \end{kframe}
 \end{knitrout}
@@ -112,40 +76,25 @@ where $i$ corresponds to the $i^{th}$ lineup and $X_{player1i}$ corresponds to a
 Using the previousspecification, I ran the model on $3911$ different lineup combinations from the 2014-2015 season.  This number was chosen by necessity since I did not have the necessary individual statistics for every player in every lineup.  Since the model does not make the familiar probabilistic assumptions of linear regression, there are different diagnostics to determine overfitting.  Since $\textit{GBM}$ are built from a large number of smaller decision trees, one of the most important parameters is determining the number of trees (known as the iterations) to fit the data.  The following plot gives us the squared error loss associated with increasing the number of trees:
 
 \begin{knitrout}
-\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}
-
-{\centering \includegraphics[width=\maxwidth]{figures/unnamed-chunk-2-1} 
-
-}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
 
 
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Loading required package: survival}}
 
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Loading required package: lattice}}
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Loading required package: splines}}
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Loading required package: parallel}}
+
+{\ttfamily\noindent\itshape\color{messagecolor}{\#\# Loaded gbm 2.1.1}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in eval(expr, envir, enclos): object 'wins' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in gbm.perf(gbm1, method = "{}cv"{}): object 'gbm1' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in predict(gbm1, newdata = testdf, type = "{}response"{}, n.trees = 100): object 'gbm1' not found}}
+
+{\ttfamily\noindent\bfseries\color{errorcolor}{\#\# Error in mean((pred - winexpectation\$x[-train\_rows])\textasciicircum{}2, na.rm = TRUE): object 'pred' not found}}\end{kframe}
 \end{knitrout}
 
-\paragraph
-\\
-The squared error loss in this context is calculated from the actual response (lineup win projections calculated from point differentials) against the predicted response with a lower error being better.  The black line indicates the in sample squared error while the red and green lines indicate squared error occurring from $n$-fold cross-validation.  The dotted blue line represents a guess at the optimal number of iterations which achieves a balance between overfitting and predictive power.  Another parameter useful for optimization is known as the learning rate which generally specifies the rate of the model's convergence.  A lower learning rate is regarded as a protection against overfitting at the expense of computation.  After randomly splitting the 2014-2015 lineup data into a training and testing set, I found that $\textit{RAPM}$ derived win projections had a mean squared error of 0.175 versus the model's mean squared error $0.163$ on the training set.
-\begin{equation}
-\mathbf{MSE}_{RAPM}=0.175\left |  \right |\mathbf{MSE}_{Model}=0.163
-\end{equation}
-
-
-\paragraph
-\\
-The real test of the model's predictive power, is using it to predict lineup winning percentages in future seasons.  To do this I predicted winning percentages on a test dataset of $n=978$ \footnote{Data gathered from Basketball-Reference} lineups randomly selected from the original dataset containing information on a total of $4889$ different lineups.  As a result I found that $\textit{RAPM}$ derived win projections had a mean squared error of $0.175$ versus the model's mean squared error of $0.143$.  This indicates improved performance versus the training set an gives and indication to the model's generalizability.
-\begin{equation}
-\mathbf{MSE}_{RAPM}=0.175\left |  \right |\mathbf{MSE}_{Model}=0.143
-\end{equation}
-
-\newpage
-\paragraph
-\\
-The results of the model are also as extensible as the results from  $\textit{RAPM}$.  Just as we can use $\textit{RAPM}$ to find the the projected wins from the inclusion of a player into a lineup, we can do the same with modeling.  First we project the wins from a lineup minus the player using the model to predict winning percentages. This is then multiplied by the $\%$ of minutes and $\%$ of games the lineup is expected to play.  These steps are then repeated with the player included in the lineup and we end up with a different win projection.  The difference between the two is the number of wins a player brings to that lineup.  The advantage and disadvantage of $\textit{RAPM}$ is that it presents a universal ranking while the modeling approach is dependent on the context of a player.
-
-
-\paragraph
-\\
-Although the differences in error are rather small they are still interesting since there is much more possible optimization.  Greater feature selection and parameter selection could improve the predictive accuracy.  The model is only fit on data from one preceding season and while more historical data could improve the model I believe that there would be diminishing returns in this regard.  This is also without mentioning the different modeling approaches that would allow player evaluators to choose the model that give them the best results.  Although plus/minus metrics are great for reference, I believe that it is better to project performance through modeling than trying to create a somewhat arbitrary ranking of players.
-
-
-\end{document}

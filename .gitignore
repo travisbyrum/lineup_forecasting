@@ -16,3 +16,6 @@ reports/LineupEval.log
 reports/LineupEval-concordance.tex
 reports/LineupEval.synctex.gz
 cache
+
+# project data
+data/

@@ -8,7 +8,7 @@
 \usepackage[parfill]{parskip}
 \usepackage{amsmath}
 
-<<setup, include=FALSE, cache=FALSE>>=
+<<setup, include=FALSE, cache=TRUE>>=
 opts_chunk$set(fig.path='figures/', fig.align='center', fig.show='hold', cache=TRUE)
 @
 \begin{document}
@@ -30,32 +30,38 @@ In this context, each term $h_i(x)$ represents an individual regression decision
 \\
 To apply this approach, I decided to fit the model on lineup data from the 2014-2015 season\footnote{Data gathered from Basketball-Reference}.  An individual row of the data includes information on specific lineup combinations, including games/minutes played and net points.  This can be seen in the following output. 
 \\
-<< echo = FALSE, cache = TRUE, eval=TRUE>>=
-
+<< echo=FALSE, cache=TRUE, eval=TRUE>>=
 set.seed(17)
-library(gbm)
 library(dplyr)
 
-final_data <- read.csv("~/lineup_forecasting/data/final_data.csv", stringsAsFactors = F) #reading in data
-lineups<- read.csv("~/lineup_forecasting/data/lineups.csv", stringsAsFactors = F)
-#reading in data
-winexpectation <- read.csv("~/lineup_forecasting/data/win_expectation2015.csv", stringsAsFactors = F)
-#reading in win_expectation
-#calculating the win expectation as predicted by RAPM
-df_rapm <- final_data[,!grepl("Player", colnames(final_data))]  #need to take out names for final analysis
-df_rapm[is.na(df_rapm)] <- 0 #replaces missing measurements with zero since we assume NA is due to low minutes
-df_rapm <- df_rapm %>% mutate(wins = winexpectation$x, Pos = as.factor(Pos), Pos.1 = as.factor(Pos.1), 
-                              Pos.2 = as.factor(Pos.2),
-                              Pos.3 = as.factor(Pos.3), Pos.4 = as.factor(Pos.4), Tm = as.factor(Tm), Tm.1 = as.factor(Tm.1),
-                              Tm.2 = as.factor(Tm.2), Tm.3 = as.factor(Tm.3), Tm.4 = as.factor(Tm.4))
-#######################
-off <- final_data[,grepl("ORPM", colnames(final_data))] #offensive RAPM
-def <- final_data[,grepl("DRPM", colnames(final_data))] #defensive RAPM 
-#######################
-combined <- final_data %>% mutate(total = ORPM + DRPM) %>% select(total) #combined RAPM
+final_data <- readr::read_csv("~/lineuper/data/final_data.csv")
+lineups<- readr::read_csv("~/lineuper/data/lineups.csv")
+winexpectation <- readr::read_csv("~/lineuper/data/win_expectation.csv")
+
+### calculating the win expectation as predicted by RAPM -------------------------------------------------------
+df_rapm <- final_data[,!grepl("Player", colnames(final_data))]  # need to take out names for final analysis
+df_rapm[is.na(df_rapm)] <- 0 # replaces missing measurements with zero since we assume NA is due to low minutes
+df_rapm <- df_rapm %>% 
+  mutate(
+    Pos   = as.factor(Pos),
+    Pos.1 = as.factor(Pos.1), 
+    Pos.2 = as.factor(Pos.2),
+    Pos.3 = as.factor(Pos.3),
+    Pos.4 = as.factor(Pos.4),
+    Tm    = as.factor(Tm), 
+    Tm.1  = as.factor(Tm.1),
+    Tm.2  = as.factor(Tm.2),
+    Tm.3  = as.factor(Tm.3), 
+    Tm.4  = as.factor(Tm.4)
+  )
+
+off <- final_data[,grepl("ORPM", colnames(final_data))] # offensive RAPM
+def <- final_data[,grepl("DRPM", colnames(final_data))] # defensive RAPM 
+combined <- final_data %>% mutate(total = ORPM + DRPM) %>% select(total) # combined RAPM
 
 # using wins estimated by http://statitudes.com/blog/2013/09/09/pythagoras-of-the-hardwood/
-#rapm estimates
+# rapm estimates
+
 est<-rep(NA,nrow(off))
 for(i in 1:nrow(off)){
   est[i]<-1/(1+exp(-0.13959*sum(combined[i,])))
@@ -81,39 +87,45 @@ where $i$ corresponds to the $i^{th}$ lineup and $X_{player1i}$ corresponds to a
 \\
 Using the previousspecification, I ran the model on $3911$ different lineup combinations from the 2014-2015 season.  This number was chosen by necessity since I did not have the necessary individual statistics for every player in every lineup.  Since the model does not make the familiar probabilistic assumptions of linear regression, there are different diagnostics to determine overfitting.  Since $\textit{GBM}$ are built from a large number of smaller decision trees, one of the most important parameters is determining the number of trees (known as the iterations) to fit the data.  The following plot gives us the squared error loss associated with increasing the number of trees:
 
-<< fig.width=4.6, fig.height=4, echo = FALSE, cache = TRUE, results='hide', eval=TRUE>>=
+<< fig.width=4.6, fig.height=4, echo=FALSE, cache=TRUE, results='hide', eval=TRUE>>=
 library(gbm)
-library(stats)
 library(dplyr)
 
-attach(df_rapm)
-response_column <- which(colnames(df_rapm) == "wins")
-gbm_formula<-as.formula(paste0("wins ~ ", paste(colnames(df_rapm[, -c(response_column)]), 
-                                                collapse = " + ")))
+gbm_formula <- as.formula(
+  paste0("win_expectation ~ ", paste(
+    setdiff(colnames(df_rapm), "win_expectation"),
+    collapse = " + ")
+  )
+)
 
 train_rows <- sample(nrow(df_rapm), round(nrow(df_rapm) * 0.8))
 traindf <- df_rapm[train_rows, ]
 testdf <- df_rapm[-train_rows, ]
 
 #fiting the boosting algorithm
-gbm1<-gbm(gbm_formula,                 # formula
-          data=traindf,                # dataset
-          distribution="gaussian",     # see the help for other choices
-          n.trees=100,                 # number of trees
-          shrinkage=0.01,              # shrinkage or learning rate,
-          # 0.001 to 0.1 usually work
-          interaction.depth=5,         # 1: additive model, 2: two-way interactions, etc.
-          bag.fraction = 0.5,          # subsampling fraction, 0.5 is probably best
-          train.fraction = 0.9,        # fraction of data for training,
-          # first train.fraction*N used for training
-          n.minobsinnode = 10,         # minimum total weight needed in each node
-          cv.folds = 2,                # do n-fold cross-validation
-          keep.data=TRUE,              # keep a copy of the dataset with the object
-          verbose=TRUE,                # don't print out progress
-          n.cores=1)   
+gbm1 <- gbm(
+  gbm_formula,                    # formula
+  data              = traindf,    # dataset
+  distribution      = "gaussian", # see the help for other choices
+  n.trees           = 100,        # number of trees
+  shrinkage         = 0.01,       # shrinkage or learning rate,
+  interaction.depth = 5,          # 1: additive model, 2: two-way interactions, etc.
+  bag.fraction      = 0.5,        # subsampling fraction, 0.5 is probably best
+  train.fraction    = 0.9,        # fraction of data for training,
+  n.minobsinnode    = 10,         # minimum total weight needed in each node
+  cv.folds          = 2,          # do n-fold cross-validation
+  keep.data         = TRUE,       # keep a copy of the dataset with the object
+  verbose           = TRUE, 
+  n.cores           = 1
+)   
 
 gbm_perf <- gbm.perf(gbm1, method = "cv")
-pred <- predict(gbm1, newdata=testdf,type="response", n.trees=100)
+pred <- predict(
+  gbm1,
+  newdata = testdf,
+  type    = "response",
+  n.trees = 100
+)
 
 gbm_mse <- suppressWarnings(mean((pred - winexpectation$x[-train_rows])^2,na.rm = TRUE))
 rapm_mse <- suppressWarnings(mean((est - winexpectation$x[-train_rows])^2,na.rm = TRUE))
@@ -126,34 +138,6 @@ The squared error loss in this context is calculated from the actual response (l
 \mathbf{MSE}_{RAPM}=\Sexpr{round(rapm_mse, digits = 3)}\left |  \right |\mathbf{MSE}_{Model}=\Sexpr{round(gbm_mse, digits = 3)}
 \end{equation}
 
-<< echo = FALSE, cache = TRUE, results='hide', eval=TRUE>>=
-library(gbm)
-library(stats)
-library(dplyr)
-
-#fiting the boosting algorithm
-gbm1<-gbm(gbm_formula,                 # formula
-          data=testdf,                 # dataset
-          distribution="gaussian",     # see the help for other choices
-          n.trees=100,                 # number of trees
-          shrinkage=0.01,              # shrinkage or learning rate,
-          # 0.001 to 0.1 usually work
-          interaction.depth=5,         # 1: additive model, 2: two-way interactions, etc.
-          bag.fraction = 0.5,          # subsampling fraction, 0.5 is probably best
-          train.fraction = 0.9,        # fraction of data for training,
-          # first train.fraction*N used for training
-          n.minobsinnode = 10,         # minimum total weight needed in each node
-          cv.folds = 2,                # do n-fold cross-validation
-          keep.data=TRUE,              # keep a copy of the dataset with the object
-          verbose=TRUE,                # don't print out progress
-          n.cores=1)   
-
-pred <- predict(gbm1, newdata=testdf,type="response", n.trees=100)
-
-gbm_mse <- suppressWarnings(mean((pred - winexpectation$x[-train_rows])^2,na.rm = TRUE))
-rapm_mse <- suppressWarnings(mean((est - winexpectation$x[-train_rows])^2,na.rm = TRUE))
-
-@
 \paragraph
 \\
 The real test of the model's predictive power, is using it to predict lineup winning percentages in future seasons.  To do this I predicted winning percentages on a test dataset of $n=978$ \footnote{Data gathered from Basketball-Reference} lineups randomly selected from the original dataset containing information on a total of $4889$ different lineups.  As a result I found that $\textit{RAPM}$ derived win projections had a mean squared error of $\Sexpr{round(rapm_mse, digits = 3)}$ versus the model's mean squared error of $\Sexpr{round(gbm_mse, digits = 3)}$.  This indicates improved performance versus the training set an gives and indication to the model's generalizability.
