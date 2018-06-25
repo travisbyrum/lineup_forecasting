@@ -13,17 +13,17 @@ if (!length(args))
 DATA_DIR <- as.character(args[1])
 FINAL_PATH <- file.path(DATA_DIR, "final_data.csv")
 
-rapm_reader <- function(page){ 
+rapm_reader <- function(page){
   url_rapm <- paste0(
     "http://espn.go.com/nba/statistics/rpm/_/page/",
-    page, 
+    page,
     "/sort/RPM"
   )
-  
+
   row <- readHTMLTable(url_rapm, stringsAsFactors = F)[[1]] %>%
-    select(-RK, -TEAM, -GP, -MPG) %>% 
+    select(-RK, -TEAM, -GP, -MPG) %>%
     rename(Player = NAME)
-  
+
   row$Player <- sub(",.*$","", row$Player)
   return(row)
 }
@@ -32,7 +32,7 @@ df_rapm <- bind_rows(
   lapply(1:12, function(x) rapm_reader(x))
 )
 
-for (i in colnames(df_rapm)[-1]){ # forcing type to numeric
+for (i in colnames(df_rapm)[-1]){        # forcing type to numeric
   df_rapm[,i] <- as.numeric(df_rapm[,i])
 }
 
@@ -42,18 +42,18 @@ read_function <- function(index){
     index,
     ".html?lid=header_seasons"
   )
-  
+
   row <- readHTMLTable(url, stringsAsFactors = F)[[1]] # we want the first table from the stats page
-  
+
   colnames(row) <- make.names(colnames(row), unique = T) %>%
     gsub("[.]", "per", .) %>%
     gsub("1", "", .)
-  
+
   row <- row %>%
     filter(Player != "Player") # removing duplicated headers
-  
+
   if (index  == "per_minute") index <- "per_36"
-  
+
   colnames(row) <- paste0(colnames(row), "_", index)
   row
 }
@@ -82,23 +82,25 @@ repeat{
   colnames(row)[which(colnames(row) %in% c("Tm_opp", "Opp"))] <- c("Tm_poss", "Opp_poss")
 
   row <- row %>%
-    filter(!(Lineup %in% c("Poss", "Lineup"))) # removing duplicate column names
-  cat("Scraping Offset: ", offset, '\n') # print progress
-  offset <- offset + 100 # going to the next lineup page
-  full_table <- bind_rows(full_table, row) # combining results
+    filter(!(Lineup %in% c("Poss", "Lineup")))
+
+  cat("Scraping Offset: ", offset, '\n')
+
+  offset <- offset + 100
+  full_table <- bind_rows(full_table, row)
 
   if (sum(as.numeric(row$MP) < 5) > 0) break
 }
 
 URL_INDEX <- c("totals", "per_minute", "advanced")
 player_table <- bind_cols(lapply(URL_INDEX, function(x) read_function(x)))
-colnames(player_table) <- gsub("^[^.]*.","", colnames(player_table)) #normalizing column names
+colnames(player_table) <- gsub("^[^.]*.","", colnames(player_table))
 
 REP_CATEGORIES <- c("Player", "Pos", "Age", "Tm", "GS", "MP", "X2Pper", "FTper", "X3Pper")
 match_index <- do.call(
-  c, 
+  c,
   sapply(
-    seq_len(length(REP_CATEGORIES)), 
+    seq_len(length(REP_CATEGORIES)),
     function(x) grep(REP_CATEGORIES[x], colnames(player_table))[-1]
   )
 )
@@ -128,11 +130,11 @@ player_table <- player_table %>%
   )
 
 column_names <- setdiff(colnames(player_table), c("Player", "Tm", "Pos"))
-for (i in column_names) {  
+for (i in column_names) {
   player_table[,i] <- as.numeric(player_table[,i])
 }
 
-player_table <- player_table %>% 
+player_table <- player_table %>%
   mutate(
     possessions = .96*(FGA_totals-ORB_totals+TOV_totals+(.44*FTA_totals))
   ) %>%
@@ -164,20 +166,9 @@ player_table <- player_table %>%
       ),
       numeric(1)
     ),
-    
+
     first_abbrev  = paste0(substring(Player, 1, 1)),
     last          = str_split_fixed(player_stats$Player, "\\s", n = 2)[, 2],
     combined_name = paste0(first_abbrev, last)
-  ) %>% 
+  ) %>%
   write_csv(FINAL_PATH)
-
-
-
-
-
-
-
-
-
-
-

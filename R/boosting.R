@@ -33,7 +33,7 @@ combined <- final_data %>%
   select(total) #combined RAPM
 
 # using wins estimated by http://statitudes.com/blog/2013/09/09/pythagoras-of-the-hardwood/
-#rapm estimates
+# rapm estimates
 est <- vapply(
   NROW(off),
   function(n) 1/(1+exp(-0.13959*sum(combined[i,]))),
@@ -56,9 +56,9 @@ traindf <- df_rapm[train_rows, ]
 testdf <- df_rapm[-train_rows, ]
 
 
-#fiting the boosting algorithm
+# fiting the boosting algorithm
 gbm1 <- gbm(
-  gbm_formula,          
+  gbm_formula,
   data              = traindf,     # dataset
   distribution      = "gaussian",  # see the help for other choices
   n.trees           = 1500,        # number of trees
@@ -75,7 +75,7 @@ gbm1 <- gbm(
 
 gbm_perf <- gbm.perf(gbm1, method = "cv")
 pred <- predict(
-  gbm1, 
+  gbm1,
   newdata = testdf,
   type    = "response",
   n.trees =1000
@@ -85,8 +85,3 @@ mean((pred - winexpectation$x[-train_rows]) ** 2, na.rm = TRUE)
 
 #MSE error
 mean((est - winexpectation$x[-train_rows]) ** 2, na.rm = TRUE)
-
-
-
-
-

@@ -41,22 +41,22 @@ winexpectation <- readr::read_csv("~/lineuper/data/win_expectation.csv")
 ### calculating the win expectation as predicted by RAPM -------------------------------------------------------
 df_rapm <- final_data[,!grepl("Player", colnames(final_data))]  # need to take out names for final analysis
 df_rapm[is.na(df_rapm)] <- 0 # replaces missing measurements with zero since we assume NA is due to low minutes
-df_rapm <- df_rapm %>% 
+df_rapm <- df_rapm %>%
   mutate(
     Pos   = as.factor(Pos),
-    Pos.1 = as.factor(Pos.1), 
+    Pos.1 = as.factor(Pos.1),
     Pos.2 = as.factor(Pos.2),
     Pos.3 = as.factor(Pos.3),
     Pos.4 = as.factor(Pos.4),
-    Tm    = as.factor(Tm), 
+    Tm    = as.factor(Tm),
     Tm.1  = as.factor(Tm.1),
     Tm.2  = as.factor(Tm.2),
-    Tm.3  = as.factor(Tm.3), 
+    Tm.3  = as.factor(Tm.3),
     Tm.4  = as.factor(Tm.4)
   )
 
 off <- final_data[,grepl("ORPM", colnames(final_data))] # offensive RAPM
-def <- final_data[,grepl("DRPM", colnames(final_data))] # defensive RAPM 
+def <- final_data[,grepl("DRPM", colnames(final_data))] # defensive RAPM
 combined <- final_data %>% mutate(total = ORPM + DRPM) %>% select(total) # combined RAPM
 
 # using wins estimated by http://statitudes.com/blog/2013/09/09/pythagoras-of-the-hardwood/
@@ -115,9 +115,9 @@ gbm1 <- gbm(
   n.minobsinnode    = 10,         # minimum total weight needed in each node
   cv.folds          = 2,          # do n-fold cross-validation
   keep.data         = TRUE,       # keep a copy of the dataset with the object
-  verbose           = TRUE, 
+  verbose           = TRUE,
   n.cores           = 1
-)   
+)
 
 gbm_perf <- gbm.perf(gbm1, method = "cv")
 pred <- predict(
